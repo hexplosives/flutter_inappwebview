@@ -1747,10 +1747,10 @@ as it can cause framerate drops on animations in Android 9 and lower (see [Hybri
   }) {
     if (this.minimumFontSize == null)
       this.minimumFontSize = Util.isAndroid ? 8 : 0;
-    assert(this.resourceCustomSchemes == null ||
-        (this.resourceCustomSchemes != null &&
-            !this.resourceCustomSchemes!.contains("http") &&
-            !this.resourceCustomSchemes!.contains("https")));
+    // assert(this.resourceCustomSchemes == null ||
+    //     (this.resourceCustomSchemes != null &&
+    //         !this.resourceCustomSchemes!.contains("http") &&
+    //         !this.resourceCustomSchemes!.contains("https")));
     assert(
         allowingReadAccessTo == null || allowingReadAccessTo!.isScheme("file"));
     assert(
