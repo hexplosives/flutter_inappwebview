@@ -9,15 +9,32 @@ import Flutter
 import Foundation
 import WebKit
 
+actor SchemeActor {
+//    schemeHandlers[hash] = urlSchemeTask
+    var schemeHandlers: [Int:WKURLSchemeTask] = [:]
+    func add(key: Int, value: WKURLSchemeTask) {
+        schemeHandlers[key] = value
+    }
+    
+    func remove(for key: Int) {
+        schemeHandlers.removeValue(forKey: key)
+    }
+}
+let schemeActor =  SchemeActor()
+
 @available(iOS 11.0, *)
 public class CustomSchemeHandler : NSObject, WKURLSchemeHandler {
-    var schemeHandlers: [Int:WKURLSchemeTask] = [:]
+//    var schemeHandlers: [Int:WKURLSchemeTask] = [:]
     static var proxyHost: String?
     static var proxyPort: Int?
-
+    
     public func webView(_ webView: WKWebView, start urlSchemeTask: WKURLSchemeTask) {
-        schemeHandlers[urlSchemeTask.hash] = urlSchemeTask
-        Task {
+        let hash = urlSchemeTask.hash
+//        schemeHandlers[hash] = urlSchemeTask
+        
+        
+        Task.detached(priority: .high, operation: {
+            await schemeActor.add(key: hash, value: urlSchemeTask)
             do {
                 let configuration = URLSessionConfiguration.default
                 if let host = CustomSchemeHandler.proxyHost,
@@ -31,23 +48,27 @@ public class CustomSchemeHandler : NSObject, WKURLSchemeHandler {
                         "HTTPSPort": port,
                     ]
                 }
-               
+                
                 configuration.timeoutIntervalForRequest = 5
                 configuration.timeoutIntervalForResource = 5
                 let session = URLSession(configuration: configuration)
                 
                 let (data, response) = try await session.data(for: urlSchemeTask.request)
-                if (self.schemeHandlers[urlSchemeTask.hash] != nil) {
+                
+                if await (schemeActor.schemeHandlers[hash] != nil) {
                     urlSchemeTask.didReceive(response)
                     urlSchemeTask.didReceive(data)
                     urlSchemeTask.didFinish()
+                    // print("task: url:\(urlSchemeTask.request.url?.absoluteString ?? "unknown url") did finished")
+                    
                 }
                 
             } catch {
                 print("task: url:\(urlSchemeTask.request.url?.absoluteString ?? "unknown url") error: \(error)")
             }
-            schemeHandlers.removeValue(forKey: urlSchemeTask.hash)
-        }
+            await schemeActor.remove(for: hash)
+            
+        })
         // let inAppWebView = webView as! InAppWebView
         // let request = WebResourceRequest.init(fromURLRequest: urlSchemeTask.request)
         // let callback = WebViewChannelDelegate.LoadResourceWithCustomSchemeCallback()
@@ -73,6 +94,9 @@ public class CustomSchemeHandler : NSObject, WKURLSchemeHandler {
     }
     
     public func webView(_ webView: WKWebView, stop urlSchemeTask: WKURLSchemeTask) {
-        schemeHandlers.removeValue(forKey: urlSchemeTask.hash)
+        Task.detached {
+            await schemeActor.remove(for: urlSchemeTask.hash)
+        }
+//        schemeHandlers.removeValue(forKey: urlSchemeTask.hash)
     }
 }
