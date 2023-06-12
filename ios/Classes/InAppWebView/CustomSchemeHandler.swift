@@ -25,8 +25,8 @@ let schemeActor =  SchemeActor()
 @available(iOS 11.0, *)
 public class CustomSchemeHandler : NSObject, WKURLSchemeHandler {
 //    var schemeHandlers: [Int:WKURLSchemeTask] = [:]
-    static var proxyHost: String?
-    static var proxyPort: Int?
+    public static var proxyHost: String?
+    public static var proxyPort: Int?
     
     public func webView(_ webView: WKWebView, start urlSchemeTask: WKURLSchemeTask) {
         let hash = urlSchemeTask.hash
